@@ -1,18 +1,29 @@
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import React, { useState } from "react";
-import { NavLink } from "react-router";
-import { auth } from "../../firebase/firebase.config";
+import {} from "firebase/auth";
+import React, { use, useState } from "react";
+import { NavLink, useNavigate } from "react-router";
+
 import { ToastContainer, toast } from "react-toastify";
 import { FaEye } from "react-icons/fa";
 import { FaEyeSlash } from "react-icons/fa";
+import { AuthContext } from "../../context/AuthContext";
 
 const SignUp = () => {
+  const navigate = useNavigate()
+  const {
+    createUserWithEmailAndPasswordFunc,
+    updateProfileFunc,
+    sendEmailVerificationFunc,
+    signOutFunc,
+    setUser
+  } = use(AuthContext);
   const [show, setShow] = useState(false);
   const handleRegister = (e) => {
     e.preventDefault();
+    const displayName = e.target.name.value;
+    const photoURL = e.target.photo.value;
     const email = e.target.email.value;
     const password = e.target.password.value;
-    console.log(email, password);
+    console.log(displayName, photoURL, email, password);
     const pattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/;
     if (!pattern.test(password)) {
       toast.error(
@@ -21,10 +32,37 @@ const SignUp = () => {
       return;
     }
 
-    createUserWithEmailAndPassword(auth, email, password)
+    createUserWithEmailAndPasswordFunc(email, password)
       .then((res) => {
         console.log(res.user);
-        toast.success("SignUp account");
+        toast("sign up");
+        // updata
+        updateProfileFunc(displayName, photoURL)
+          .then(() => {
+            // Profile updated!
+            // ...
+            // varification
+            sendEmailVerificationFunc()
+              .then((res) => {
+                console.log(res);
+                toast.success("Account created! please varify your account");
+                signOutFunc()
+                .then((res) => {
+                  console.log(res);
+                  toast("signout successfull");
+                  navigate('/signIn')
+                  setUser(null);
+                });
+              })
+              .catch((e) => {
+                toast.error(e.message);
+              });
+          })
+          .catch((error) => {
+            // An error occurred
+            // ...
+            toast.error(error);
+          });
       })
       .catch((e) => {
         console.log(e.message);
@@ -57,6 +95,20 @@ const SignUp = () => {
           <div className="card-body">
             <form onSubmit={handleRegister}>
               <fieldset className="fieldset">
+                <label className="label">Name</label>
+                <input
+                  type="name"
+                  className="input"
+                  name="name"
+                  placeholder="name"
+                />
+                <label className="label">Photo</label>
+                <input
+                  type="photo"
+                  className="input"
+                  name="photo"
+                  placeholder="Photo URL"
+                />
                 <label className="label">Email</label>
                 <input
                   type="email"
